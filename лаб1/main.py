@@ -2,14 +2,15 @@ import pandas as pd, random
 from concurrent.futures import ProcessPoolExecutor as Pool
 
 countOfFiles = 5
+countOfLines = 5
 categoryList = ("A", "B", "C", "D")
 csv_files = []
 
 
 for i in range(1, countOfFiles+1):
     data = {
-        "category": [random.choice(categoryList)],
-        "value": [round(random.random() * 100, 3)]
+        "category": [random.choice(categoryList) for _ in range(countOfLines)],
+        "value": [round(random.random() * 100, 3) for _ in range(countOfLines)]
     }
     df = pd.DataFrame(data)
     fileName = f"file{i}.csv"
@@ -19,31 +20,28 @@ for i in range(1, countOfFiles+1):
 
 def processing(fileName):
     df = pd.read_csv(fileName)
-    return df.iloc[0]["category"], df.iloc[0]["value"]
+    medianAndStd = df.groupby("category")["value"].agg(
+        median="median",
+        std="std"
+    ).reset_index()
+    return fileName, medianAndStd
 
 
 if __name__ == "__main__":
     with Pool(max_workers=countOfFiles) as executor:
         results = list(executor.map(processing, csv_files))
 
-    full_df = pd.DataFrame(results, columns=["category", "value"])
+    print("Результаты по каждому файлу")
+    for fileName, df in results:
+        print(f"\nФайл: {fileName}")
+        print(df)
 
-    stats = full_df.groupby("category")["value"].agg(
+    full_df = pd.concat([df for _, df in results])
+
+    result = full_df.groupby("category")["median"].agg(
         median="median",
         std="std"
     ).reset_index()
 
-    print("По категориям")
-    print(stats.fillna(0))
-
-    
-    median_values = stats["median"]
-
-    result = pd.DataFrame({
-        "category": stats["category"],
-        "median_of_medians": [median_values.median()] * len(stats),
-        "std_of_medians": [median_values.std()] * len(stats)
-    })
-
-    print("\nМедиана медиан и std медиан")
+    print("\nМедиана из медиан и стандартное отклонение медиан")
     print(result)
