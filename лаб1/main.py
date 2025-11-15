@@ -23,7 +23,7 @@ def processing(fileName):
     medianAndStd = df.groupby("category")["value"].agg(
         median="median",
         std="std"
-    ).reset_index()
+    )
     return fileName, medianAndStd
 
 
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     result = full_df.groupby("category")["median"].agg(
         median="median",
         std="std"
-    ).reset_index()
+    )
 
     print("\nМедиана из медиан и стандартное отклонение медиан")
     print(result)
